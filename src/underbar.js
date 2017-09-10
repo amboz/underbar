@@ -329,7 +329,7 @@
     var output;
 
     return function() {
-      var args = JSON.stringify(Array.from(arguments));
+      var args = JSON.stringify(arguments);
 
       if (args in cache) {
         return cache[args];
@@ -351,7 +351,7 @@
   _.delay = function(func, wait) {
     var args = Array.from(arguments).slice(2, arguments.length);
     setTimeout(function() {
-      func.apply(null, args)
+      func.apply(this, args)
     }, wait);
   };
 
