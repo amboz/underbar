@@ -367,11 +367,10 @@
   // input array. For a tip on how to make a copy of an array, see:
   // http://mdn.io/Array.prototype.slice
   _.shuffle = function(array) {
-    var copy = array.slice();
     var output = [];
     var indexesCalled = []
-    while (output.length < copy.length) {
-      var currIndex = Math.floor(Math.random()*copy.length);
+    while (output.length < array.length) {
+      var currIndex = Math.floor(Math.random() * array.length);
       if (_.indexOf(indexesCalled, currIndex) === -1) {
         output.push(array[currIndex]);
         indexesCalled.push(currIndex);
@@ -392,6 +391,9 @@
   // Calls the method named by functionOrKey on each value in the list.
   // Note: You will need to learn a bit about .apply to complete this.
   _.invoke = function(collection, functionOrKey, args) {
+  	return _.map(collection, function(item) {
+  		return (typeof functionOrKey === 'function' ? functionOrKey.apply(item, args) : item[functionOrKey].apply(item, args));
+  	});
   };
 
   // Sort the object's values by a criterion produced by an iterator.
@@ -399,7 +401,34 @@
   // of that string. For example, _.sortBy(people, 'name') should sort
   // an array of people by their name.
   _.sortBy = function(collection, iterator) {
-  };
+  	var str = typeof iterator === 'string';
+  	var lowest = Number.POSITIVE_INFINITY;
+
+  	_.each(collection, function(item, index) {
+  		lowest = index;
+  		if (str) {
+  			for (var i = index + 1; i < collection.length; i++) {
+  				if (collection[i][iterator] < collection[lowest][iterator]) {
+  					lowest = i;
+  				}
+  			}
+  		} else {
+  			for (var i = index + 1; i < collection.length; i++) {
+  				if (iterator(collection[i]) < iterator(collection[lowest]) || collection[lowest] === undefined) {
+  					lowest = i;
+  				}
+  			}
+  		}
+
+  		if (index !== lowest) {
+  			var hold = collection[index];
+  			collection[index] = collection[lowest];
+  			collection[lowest] = hold;
+  		}
+  	});
+
+  	return collection;
+  }
 
   // Zip together two or more arrays with elements of the same index
   // going together.
@@ -407,6 +436,27 @@
   // Example:
   // _.zip(['a','b','c','d'], [1,2,3]) returns [['a',1], ['b',2], ['c',3], ['d',undefined]]
   _.zip = function() {
+  	var output = [];
+  	var args = Array.from(arguments);
+  	var longest = _.reduce(args, function(acc, item) {
+  		return item.length > acc.length ? item : acc;
+  	});
+  	args.splice(_.indexOf(args, longest), 1);
+  	var restOfArgs = args;
+
+  	for (var i = 0; i < longest.length; i++) {
+  		var currZip = [];
+  		currZip.push(longest[i]);
+  		for (var j = 0; j < restOfArgs.length; j++) {
+  			if (restOfArgs[j][i] !== undefined) {
+  				currZip.push(restOfArgs[j][i])
+  			} else {
+  				currZip.push(undefined);
+  			}
+  		}
+  		output.push(currZip);
+  	}
+  	return output;
   };
 
   // Takes a multidimensional array and converts it to a one-dimensional array.
@@ -414,16 +464,61 @@
   //
   // Hint: Use Array.isArray to check if something is an array
   _.flatten = function(nestedArray, result) {
+  	var output = [];
+
+  	function findValue(arr) {
+  		_.each(arr, function(item) {
+  			if (Array.isArray(item)) {
+  				findValue(item)
+  			} else {
+  				output.push(item)
+  			}
+  		});
+  	}
+
+  	findValue(nestedArray);
+  	return output;
   };
 
   // Takes an arbitrary number of arrays and produces an array that contains
   // every item shared between all the passed-in arrays.
   _.intersection = function() {
+  	var output = [];
+  	var args = Array.from(arguments);
+  	var shortest = _.uniq(_.reduce(args, function(acc, item) {
+  		return item.length < acc.length ? item : acc;
+  	}));
+  	args.splice(_.indexOf(args, shortest), 1);
+  	var restOfArgs = args;
+
+  	for (var i = 0; i < shortest.length; i++) {
+  		var target = shortest[i];
+  		for (var j = 0; j < restOfArgs.length; j++) {
+  			if (_.indexOf(restOfArgs[i], target) !== -1) {
+  				output.push(target)
+  			}
+  		}
+  	}
+
+  	return _.uniq(output);
   };
 
   // Take the difference between one array and a number of other arrays.
   // Only the elements present in just the first array will remain.
   _.difference = function(array) {
+  	var output = [];
+  	var args = Array.from(arguments);
+  	var first = args[0];
+  	var restOfArgs = _.flatten(args.slice(1, args.length));
+
+  	_.each(first, function(item) {
+  		var seen = _.indexOf(restOfArgs, item) !== -1 ? true : false;
+  		if (seen === false) {
+  			output.push(item);
+  		}
+  	});
+
+  	return _.uniq(output);
   };
 
   // Returns a function, that, when invoked, will only be triggered at most once
@@ -432,5 +527,15 @@
   //
   // Note: This is difficult! It may take a while to implement.
   _.throttle = function(func, wait) {
+  	var canRun = true;
+  	return function() {
+  		if (canRun) {
+  			canRun = false;
+  			setTimeout(function() {
+  				canRun = true;
+  			}, wait);
+  			return func.apply(this, arguments);
+  		}
+  	};
   };
 }());
