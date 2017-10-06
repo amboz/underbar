@@ -180,16 +180,14 @@
   //   }); // should be 5, regardless of the iterator function passed in
   //          No accumulator is given so the first element is used.
   _.reduce = function(collection, iterator, accumulator) {
-    if (accumulator == undefined) {
+    if (accumulator === undefined) {
       accumulator = collection[0];
-      _.each(collection.slice(1, collection.length), function(item, index) {
-        accumulator = iterator(accumulator, item);
-      })
-    } else {
-      _.each(collection, function(item, index) {
-        accumulator = iterator(accumulator, item)
-      });
+      collection = collection.slice(1);
     }
+
+    _.each(collection, function(item, index) {
+      accumulator = iterator(accumulator, item);
+    });
 
     return accumulator;
   };
@@ -209,24 +207,22 @@
 
   // Determine whether all of the elements match a truth test.
   _.every = function(collection, iterator) {
+    iterator = iterator || _.identity;
+
     return _.reduce(collection, function(currState, item) {
-      if (currState) {
-        return iterator === undefined ? Boolean(item) : Boolean(iterator(item));
-      } else {
-        return false;
-      }
-    }, true);
+      return Boolean(currState) && Boolean(iterator(item));
+    }, true)
   };
 
   // Determine whether any of the elements pass a truth test. If no iterator is
   // provided, provide a default one
   _.some = function(collection, iterator) {
     // TIP: There's a very clever way to re-use every() here.
-    iterator === undefined ? iterator = function(item) {return Boolean(item)} : iterator;
+    iterator = iterator || _.identity;
 
     return !_.every(collection, function(item) {
       return !(iterator(item));
-    })
+    });
   };
 
   /**
@@ -336,9 +332,8 @@
       } else {
         output = func.apply(this, arguments);
         cache[args] = output;
+        return output;
       }
-
-      return output;
     }
   };
 
